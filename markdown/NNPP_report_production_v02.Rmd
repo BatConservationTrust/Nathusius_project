@@ -1,0 +1,1170 @@
+---
+title: "Nathusisus' Pipistrelle Project Report"
+author: 'Bat Conservation Trust: Katherine Boughey & James Waterman'
+date: "`r Sys.Date()`"
+output:
+  word_document: default
+  html_document: default
+bibliography: references.bib
+extra_dependencies: float
+always_allow_html: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE,
+                      fig.pos = "H", out.extra = "")
+```
+
+```{r call packages, include=FALSE, message=FALSE, warning=FALSE}
+require(tidyverse)
+require(extrafont)
+require(magrittr)
+require(janitor)
+require(snakecase)
+require(kable)
+require(kableExtra)
+require(ggforce)
+require(hrbrthemes)
+require(sf)
+
+```
+
+```{r options, include=FALSE, message=FALSE, warning=FALSE}
+options(scipen = 6, digits = 8)
+ggplot2::theme_set(theme_light(base_size = 14))
+rstudioapi::writeRStudioPreference("data_viewer_max_columns", 1000L)
+# extrafont::loadfonts()
+
+# scale_colour_manual(values = c("#332288", "#88CCEE", "#DDCC77"),
+#                     breaks = c("Nathusius' pipistrelle", "Soprano pipistrelle", "Common pipistrelle"),
+#                     labels = c("Pipistrellus nathusii", "Pipistrellus pygmaeus", "Pipistrellus pipistrellus"))
+# 
+# 
+# facet_wrap(~ factor(species_name, levels = c("Pipistrellus nathusii", "Pipistrellus pygmaeus", "Pipistrellus pipistrellus")), ncol = 3)
+# 
+# 
+# scale_colour_manual(values = c("#332288", "#DDCC77"),
+#                     breaks = c("Female", "Male"))
+
+```
+
+```{r define functions, include = FALSE}
+diagnostics_func <- function(x){
+   par(mfrow = c(2,2))
+   simres <- DHARMa::simulateResiduals(fittedModel = x ,n = 250)
+   DHARMa::plotQQunif(simres)
+   DHARMa::plotResiduals(simres, rank = T, quantreg = T)
+   DHARMa::testZeroInflation(simres)
+   DHARMa::testDispersion(simres)
+}
+
+format_cells <- function(df, rows ,cols, value = c("italics", "bold", "strikethrough")){
+
+  # select the correct markup
+  # one * for italics, two ** for bold
+  map <- setNames(c("*", "**", "~~"), c("italics", "bold", "strikethrough"))
+  markup <- map[value]  
+
+  for (r in rows){
+    for(c in cols){
+
+      # Make sure values are not factors
+      df[[c]] <- as.character( df[[c]])
+
+      # Update formatting
+      df[r, c] <- paste0(markup, df[r, c], markup)
+    }
+  }
+
+  return(df)
+}
+```
+
+---
+
+## 1 | Introduction
+
+The National Nathusius’ Pipsitrelle Project (NNPP) is a citizen science project that began in 2014. It has the aims of:
+
+* Determining the resident and breeding status of P. nathusii in Great Britain.
+* Determining the migratory origins of P. nathusii in Great Britain.
+* Gathering further information on the distribution of P. nathusii in Great Britain and the Channel Islands.
+
+It combines acoustic surveys, capture surveys, ringing, radio tracking and stable isotope analysis. Surveys are undertaken by local bat groups coordinated by and under the guidance of Daniel Hargreaves and staff at the Bat Conservation Trust.
+
+In this report we present a summary analysis of data from NNPP capture surveys and ringing recoveries.
+
+## 2 | Methods  
+### 2.1 | Site Selection  
+
+Capture surveys were undertaken in the vicinity of large waterbodies where the presence of *Pipistrellus nathusii* had previously been confirmed by either acoustic surveys or bat box inspections, ideally in multiple consecutive years. Survey locations were selected by participating bat groups to maximise the chance of capturing *P. nathusii*, considering the habitat composition of the surrounding landscape (favouring areas with larger areas of water or wetlands with adjacent woodland) and topographic features that could create migratory corridors.  
+
+### 2.2 | Survey Timing  
+
+Surveys were undertaken each year from April to mid-June, and from mid-July to October. Surveys were suspended between approximately mid-June to mid-July each year to avoid negative impacts on heavily pregnant or lactating females. The exact timing of the suspension was determined for each locality each year in discussion with surveyors, taking into account the progress of the breeding season and the condition of bats caught in early June.  
+
+### 2.3 | Survey Methods 
+
+Each site was surveyed twice, once in the pre-breeding period and once in the post-breeding period. At each site at least two trap locations were identified. Trap locations were selected to be more than 200 m apart, as close to the water as possible, ideally with trees or vegetation to conceal the trap supports, and with suitable space for surveyors to operate with appropriate distancing for themselves and the bats. At each trap location either a harp trap or mist net was deployed in conjunction with an acoustic lure (Sussex Autobat, Avisoft UltraSoundGate or BAT AT100) playing a *P. nathusii* advertisement call.   The lure was placed in the centre of the trap at approximately 1.5m height and ultrasound calls were broadcast from the acoustic lure as described in @lintott2014testing. Lures were switched on and traps were opened at sunset and were checked regularly, at least every 15 minutes, during the survey. Surveys continued for at least two hours, but longer where possible. Temperature, cloud cover, rain, wind speed and moon phase were recorded at the start of the survey, and temperature was also recorded at the end of the survey. From 2021 onwards all reusable equipment including traps, nets, containers, bags and callipers that were in direct contact with bats were disinfected between use to avoid transfer of SARS-CoV-2 from humas to bats, following the recommendations of the IUCN Bat Specialist Group [@kingston2021iucn]. All surveys were carried out under license from the relevant statutory nature conservation body.  
+
+### 2.4 | Captures  
+
+For each captured bat the following information was recorded: time caught, species, age, reproductive status, weight, forearm measurement and, for *Pipistrellus* species, fifth finger length. Bats were aged as adults or juveniles according to the degree of ossification of the epiphyseal joints in the finger bones [@baagoe1977age]. A ratio of the fifth digit length to the forearm length of 1.25 or more was taken as indicative of *P.nathusii* [@stebbings1970bat]. In the initial two years of the survey a fur sample (1 mg approx.) was taken from the lower dorsal area of captured *P. nathusii* and *P. pygmaeus* to enable comparative stable isotope analysis, and *P. nathusii* were held in a clean bag for up to 15 minutes to collect droppings for genetic confirmation of species identification. Where participants were licensed to do so, captured *P. nathusii* were ringed with a 2.9 mm ring following standard bat ringing protocols. Where radio-tracking equipment was available, female *P. nathusii* caught in the pre-breeding season in good condition, of a suitable weight and not heavily pregnant were tagged and tracked back to their roosting location. Emergence surveys at identified roosts were conducted over the breeding season to assess roost occupancy and confirm breeding where possible (data not reported here).
+
+### 2.5 | Data Summary and Analysis  
+
+```{r survey effort values, include=F}
+
+# import clean NNPP survey data
+nnpp_survey <- readRDS("~/MEGA/Bat Conservation Trust/BCT-NNPP/rds/nnpp_survey.rds")
+bat_names <- readRDS("~/MEGA/Bat Conservation Trust/BCT-NNPP/rds/bat_names.rds")
+
+# calculate trapping effort per survey
+
+### Rationale: 
+
+# Each survey_id is unique, thus 'survey' is (or would appear to be) the observational unit.
+# However, at least 2 key variables (related to trapping effort) vary between surveys: number of traps deployed and for how long?
+# 1. Deployment duration is a problem with these data because many survey records (228 (~ 16%)) omit this information
+
+nnpp_survey %>%
+  dplyr::distinct(survey_id, survey_time_start_clean, survey_time_end_clean) %>% 
+  dplyr::mutate(duration_info =
+                  dplyr::case_when(!is.na(survey_time_start_clean) & !is.na(survey_time_end_clean) ~ "y",
+                                   TRUE ~ "n")) %>%
+  janitor::tabyl(., duration_info) %$%
+  n[1] -> count_survey_duration_inferred
+
+nnpp_survey %>%
+  dplyr::distinct(survey_id, survey_time_start_clean, survey_time_end_clean) %>% 
+  dplyr::mutate(duration_info =
+                  dplyr::case_when(!is.na(survey_time_start_clean) & !is.na(survey_time_end_clean) ~ "y",
+                                   TRUE ~ "n")) %>%
+  janitor::tabyl(., duration_info) %$%
+  n[2] -> count_survey_duration_calculated
+
+
+```
+
+All survey data were collated and inspected for errors or inconsistencies, e.g., erroneous date-time stamps, bat capture times that preceded the start of a survey, or inconsistencies in sex/age between ring recoveries. All instances were corrected and all surveys were included in data analysis.
+
+To account for variation in survey effort between and within years, months, bat groups, survey sites, individual surveys we calculated a bat capture rate by dividing the number of bats caught (by species, sex, age class etc.) by the total duration of survey effort per survey. Survey effort was calculated as the number of minutes (presented as hours below for clarity) between the start and end of a survey multiplied by the number of traps deployed during that survey. This provided a consistent measure of total survey effort that also accounted for the 78 surveys that recorded no bats at all. Thus, our observational unit was survey. For any surveys that had no, or incomplete, start and end time data (n = `r toString(count_survey_duration_inferred)`) we drew a pseudo-random sample of durations from our  `r toString(count_survey_duration_calculated)` complete survey durations. This sample was not drawn entirely at random; it was drawn in a way that exactly matched the distribution of our actual survey durations. In this way we were able to retain these `r toString(count_survey_duration_inferred)` survey records without simply assigning a mean duration to them.  
+
+To investigate body condition we chose to calculate a scaled mass index (SMI) rather than a standard body condition index (BCI). Body condition indices are commonly calculated from the linear relationship between body mass and a length measurement e.g., forearm length. However, a wide range of BCIs exist, many of which fail to account for body size (a vital requirement for condition indices) [@peig2010paradigm]. The SMI corrects for variation in body size by scaling all individuals to the same length (the population average), and comparing each individual’s true mass to the expected mass of an individual of average length. The resulting ‘predicted mass’ indicates where an individual lies (in terms of body mass) in relation to the average individual. 
+
+International and within-UK travel data were investigated using the *geosphere* [@hijmans2019geosphere] and *circular* [@agostinelli2023r] packages in R [@team2023r]. Travel bearings were calculated from start and end locations using the *geosphere::bearings* functions and the uniformity of these bearings was tested for statistical significance (*P* = 0.05) using the *circular::rayleigh.test* function.
+
+
+## 3 | Results  
+### 3.1 | National Nathusius pipistrelle Project (NNPP) Survey Summary  
+
+```{r descriptive summary of survey data, echo=FALSE, message=FALSE, warning=FALSE}
+
+nnpp_survey %<>% dplyr::ungroup()
+
+# correct erroneous species id 
+nnpp_survey %<>% 
+  dplyr::mutate(species = dplyr::case_when(ring_number == "J14903" ~ "Nathusius' pipistrelle", 
+                                           TRUE ~ species),
+                species_name = dplyr::case_when(ring_number == "J14903" ~ "Pipistrellus nathusii", 
+                                                TRUE ~ species_name))
+
+##### number of bats trapped in survey
+
+# extract all UNIQUE non-ringed bats
+unique_unringed_bats <- nnpp_survey %>% 
+  dplyr::ungroup() %>% 
+  dplyr::filter(is.na(ring_number)) %>% 
+  dplyr::distinct(survey_id, bat_record_id, .keep_all = TRUE)
+
+# extract all UNIQUE ringed bats
+unique_ringed_bats <- nnpp_survey %>% 
+  dplyr::ungroup() %>% 
+  dplyr::filter(!is.na(ring_number)) %>% 
+  dplyr::distinct(ring_number, .keep_all = TRUE)
+
+nrow(unique_unringed_bats) + nrow(unique_ringed_bats) -> count_total_bats_nnpp
+
+##### number of bat SPECIES trapped in survey
+
+# minus 2 bc undefined pipistrelle and small myotis sp. are factor levels
+count_species_defined_nnpp <- length(unique(sort(nnpp_survey$species)))-2 
+count_species_undefined_nnpp <- length(unique(sort(nnpp_survey$species))) - count_species_defined_nnpp
+
+##### number of bat groups detailed in survey
+count_bat_groups_nnpp <- length(unique(nnpp_survey$bat_group_id))
+
+##### number of surveys conducted
+count_surveys_nnpp <- length(unique(nnpp_survey$survey_id))
+
+##### number of survey sites detailed in survey
+count_sites_nnpp <- length(unique(nnpp_survey$site_id, na.rm = T))
+
+##### number of bat ringed as part of survey
+
+# extract all ringed bats
+nnpp_survey %>% 
+  dplyr::ungroup() %>% 
+  dplyr::filter(!is.na(ring_number)) %>% 
+  dplyr::select(species, ring_number, survey_id) %>% 
+  dplyr::arrange(ring_number) %>% 
+  # extract distinct combinations of ring number and survey id (MANY ring numbers appear more than once in the SAME SURVEY)
+  dplyr::distinct(species, ring_number, survey_id) %>% 
+  dplyr::group_by(species, ring_number) %>% 
+  dplyr::mutate(captures = n()) %>% 
+  dplyr::select(-survey_id) %>% 
+  dplyr::distinct(species, ring_number, captures) %>% 
+  janitor::tabyl(captures) %$% n[1] -> count_bats_ringed_once_nnpp
+
+nrow(unique_ringed_bats) - count_bats_ringed_once_nnpp -> count_bats_recaptures_nnpp
+
+```
+
+Between 2014 and 2023, `r toString(count_bat_groups_nnpp)` bat groups conducted `r toString(count_surveys_nnpp)` surveys across `r toString(count_sites_nnpp)` sites (Fig. 1), catching a total of `r toString(count_total_bats_nnpp)` bats. These comprised `r toString(count_species_defined_nnpp)` taxa identified to species level and `r toString(count_species_undefined_nnpp)` identified to genus level: undefined pipistrelle species and undefined small myotis species (Table 1). Of the total bat captures, `r toString(count_bats_ringed_once_nnpp)` were ringed for the first time, and `r toString(count_bats_recaptures_nnpp)` were already ringed upon capture, either as part of the NNPP or elsewhere.  
+
+<br/>
+
+
+```{r FIG 1 - MAP of survey sites, echo=FALSE, message=FALSE, warning=FALSE, out.width="100%", out.height="100%", fig.width=8.2, fig.height=11.6}
+
+europe <- readRDS("~/MEGA/Bat Conservation Trust/BCT-NNPP/rds/europe.rds")
+lakes <- readRDS("~/MEGA/Bat Conservation Trust/BCT-NNPP/rds/lakes.rds")
+
+nnpp_survey_site_locations <- nnpp_survey %>% 
+  dplyr::select(year, site_name, survey_id, site_lat, site_lon) %>% 
+  dplyr::distinct() %>% 
+  dplyr::filter(!is.na(year))
+
+ggplot() +
+  geom_sf(data = europe)+
+  geom_sf(data = lakes, fill = "#88CCEE")+
+  geom_point(data = nnpp_survey_site_locations,
+             aes(y = site_lat, x = site_lon),
+             alpha = 0.9, size = 1.3, colour = "#CC6677")+
+  coord_sf(xlim = c(-10.5, 2.5), ylim = c(49.5, 60.5))+
+  labs(x = "Latitude", y = "Longitude", colour = "Year")+
+  theme(text=element_text(size=19),
+        legend.position = "right",
+        axis.title.y = element_text(margin = margin(t = 0, r = 20, b = 0, l = 0), size = 19),
+        axis.title.x = element_text(margin = margin(t = 20, r = 0, b = 0, l = 0), size = 19))
+
+```
+**Figure 1.** National Nathusius' pipistrelle project survey locations (2014-2023) 
+<br>  
+
+**Table 1.** Summary of bats captured, by species, during National Nathusius' pipistrelle project surveys (2014-2023)  
+
+```{r TABLE 1 - raw capture count by species, echo=FALSE, message=FALSE, warning=FALSE}
+ 
+species_order_pip <- c("Nathusius' pipistrelle", "Soprano pipistrelle", "Common pipistrelle")
+species_name_order_pip <- c("Pipistrellus nathusii", "Pipistrellus pygmaeus", "Pipistrellus pipistrellus")
+
+# create unique bat records ONLY df ----
+nnpp_survey_unique <- dplyr::bind_rows(unique_ringed_bats, unique_unringed_bats)
+
+
+# produce table showing number (and proportion) of total survey captures by species
+knitr::kable(
+  nnpp_survey_unique %>%
+    
+    dplyr::mutate(species_name = dplyr::case_when(is.na(species_name) ~ "Unidentified",
+                                                  TRUE ~ species_name)) %>% 
+    dplyr::group_by(species_name) %>% 
+    dplyr::summarise(bat_captures = n()) %>% 
+    dplyr::select(species_name, bat_captures) %>% 
+        
+    # dplyr::ungroup() %>%
+    # dplyr::mutate(bat_count = sum(bat_captures)) %>%
+    
+    # dplyr::filter(!is.na(species_name)) %>% 
+    dplyr::mutate(bat_captures_prop = round(bat_captures / count_total_bats_nnpp, 4)) %>%
+    dplyr::arrange(factor(species_name, level = species_name_order_pip)) %>% 
+    format_cells(1:21, 1, "italics"),
+  col.names = c("Species", "Number of Captures", "Proportion of Total Captures"),
+  align = "lll")
+
+```  
+
+<br/>  
+
+### 3.2 | Pipistrelle spp. Capture Rate  
+### 3.2.1 | Pipistrelle spp. Capture Rate by Survey Month  
+
+<br>
+
+Capture rates (number of bats captures per trap, per hour) of *P. nathusii*, *Pipistrellus pygmaeus*, and *Pipistrellus pipistrellus* varied throughout the annual trapping window (April through October) (Figs. 2a & 2b). The capture rate of *P. nathusii* showed a marked U-shaped pattern; rates declined slowly from April until June, and rose sharply in August (Fig. 2a). *P. pygmaeus* capture rates were notably higher than those of *P. nathusii* and *P. pipistrellus* throughout most of the year, regularly peaking in mid-July (Fig. 2b). 
+<br>  
+
+```{r FIG 2 - NP capture rate by month, echo = FALSE, message = FALSE, warning = FALSE, out.width="100%", out.height="100%", fig.width=5.8, fig.height=9}
+
+# read in clean survey data (ready for use; processed outside markdown for speed)
+pip_survey_master_02 <- readRDS("~/MEGA/Bat Conservation Trust/BCT-NNPP/rds/pip_survey_master_02.rds")
+
+df <- pip_survey_master_02 %>% 
+  dplyr::group_by(survey_id, species, survey_effort_mins, year, month) %>% 
+  dplyr::summarise(bat_captures_by_species = sum(bat_captures)) %>% 
+  dplyr::mutate(bat_capture_rate_per_trap_per_hour = bat_captures_by_species/(as.numeric(survey_effort_mins)/60))
+
+p1 <- df %>% 
+  dplyr::filter(species == "Nathusius' pipistrelle") %>% 
+  ggplot(., aes(x = month, y = bat_capture_rate_per_trap_per_hour))+
+  stat_smooth(method = "loess", colour = "#332288", alpha = 0.4)+
+  scale_x_continuous(limits = c(1, 12),
+                     breaks = c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12),
+                     label = c("January", "February", "March", "April", "May", "June",
+                               "July", "August", "September", "October", "November", "December"))+
+  theme_ipsum()+
+  theme(text=element_text(size=14),
+        legend.position = "right",
+        axis.title.y = element_blank(),
+        axis.title.x = element_blank(),
+        axis.text.x = element_text(angle = 45, hjust = 1,size = 14),
+        panel.grid.minor = element_blank(),
+        plot.margin = margin(t = 30, r = 0,  b = 0, l = 0))+
+  coord_cartesian(ylim = c(0, 0.4))+
+  labs(y = "Bat capture rate (bats per trap, per hour) Mean ± 95% CI")
+
+p2 <- df %>% 
+  ggplot(., aes(x = month, y = bat_capture_rate_per_trap_per_hour, colour = species, group = species))+
+  stat_smooth(method = "loess", alpha = 0.4)+
+  scale_x_continuous(limits = c(1, 12),
+                     breaks = c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12),
+                     label = c("January", "February", "March", "April", "May", "June",
+                               "July", "August", "September", "October", "November", "December"))+
+  scale_colour_manual(values = c("#332288", "#20854E", "#BC3C29"),
+                      breaks = c("Nathusius' pipistrelle", "Soprano pipistrelle", "Common pipistrelle"),
+                      labels = c("Pipistrellus nathusii", "Pipistrellus pygmaeus", "Pipistrellus pipistrellus"))+
+  theme_ipsum()+
+  theme(text=element_text(size=14),
+        legend.position = "bottom",
+        axis.title.y = element_text(hjust = -0.5, margin = margin(t = 0, r = 20, b = 0, l = 0), size = 14),
+        axis.title.x = element_text(hjust = 0.5, margin = margin(t = 20, r = 0, b = 0, l = 0), size = 14),
+        axis.text.x = element_text(angle = 45, hjust = 1,size = 14),
+        panel.grid.minor = element_blank(),
+        plot.margin = margin(t = 0, r = 0,  b = 20, l = 0))+
+  labs(x = "Month",
+       y = "Bat capture rate (bats per trap, per hour) Mean ± 95% CI",
+       colour = "Species:")
+
+ggpubr::ggarrange(p1,
+                  p2,
+                  labels = c("A.", "B."),
+                  font.label = list(size = 14),
+                  hjust = -4,
+                  nrow = 2,
+                  heights = c(1, 1),
+                  common.legend = TRUE,
+                  align = "hv",
+                  legend = "bottom")
+
+```
+<br>
+<br>
+
+**Figure 2.** *Pipistrelle spp.* capture rate by month. Panel A: *P. nathusii*. Panel B: *P. nathusii*, *P. pygmaeus*, and *P. pipistrellus*.  
+<br>
+
+### 3.2.2 | *P. nathusii* Capture Rate at Coastal and Inland Survey Sites  
+
+<br>
+
+Capture rates differed between coastal areas (those within 10 km of the shore) and inland areas (those further than 10 km from the shore) over the course of the year, and notably over the course of a survey evening (Fig. 3). Capture rates were higher in coastal survey areas, earlier in the evening in most months, however the bias towards early captures was most pronounced during the (established migration) months of May and August/September.
+<br>
+
+```{r FIG 3 - NP capture rate by month-time-coastal, echo = FALSE, message = FALSE, warning = FALSE, out.width="100%", out.height="100%", fig.width=5.8, fig.height=9}
+
+pip_survey_master_04 <- readRDS("~/MEGA/Bat Conservation Trust/BCT-NNPP/rds/pip_survey_master_04.rds")
+
+nnpp_survey_master_02 <- dplyr::left_join(nnpp_survey,
+                                          dplyr::select(pip_survey_master_04, survey_id, coastal),
+                                          by = "survey_id") %>%
+  dplyr::distinct()
+
+bat_trap_time_df <- nnpp_survey_master_02 %>% dplyr::filter(!is.na(bat_trap_time_clean) & species == "Nathusius' pipistrelle")
+
+bat_trap_time_df2 <- bat_trap_time_df %>% 
+    dplyr::select(survey_id, year, month, sex, age, female_reproductive_status, bat_trap_time_clean,
+                  survey_effort_mins, site_lat, site_lon, coastal) %>% 
+    dplyr::ungroup() %>% 
+    dplyr::mutate(bat_trap_time_clean2 = as.POSIXct(bat_trap_time_clean),
+                  bat_trap15 = lubridate::floor_date(bat_trap_time_clean2, "1 min"),
+                  bat_trap_hour = lubridate::hour(bat_trap15))
+
+bat_trap_time_df3 <- bat_trap_time_df2 %>% 
+    dplyr::ungroup() %>% 
+    dplyr::filter(!(bat_trap_hour %in% c(11, 17, 3, 4, 5, 6))) %>% 
+    dplyr::mutate(bat_trap15x = dplyr::case_when(bat_trap_hour %in% c(0, 1, 2, 3, 4, 5, 6 ) ~ bat_trap15 + lubridate::hours(24),
+                                                 TRUE ~ bat_trap15))
+
+bat_trap_time_df_all <- bat_trap_time_df3 %>% 
+    dplyr::group_by(month, bat_trap_hour, bat_trap15x, survey_effort_mins, coastal) %>% 
+    dplyr::summarise(value = n()) %>% 
+    dplyr::mutate(capture_rate = value / as.numeric(survey_effort_mins)) %>% 
+    dplyr::ungroup() %>% 
+    tidyr::complete(., month, bat_trap_hour, bat_trap15x, coastal, fill = list(capture_rate = 0)) %>% 
+    dplyr::mutate(month_name = lubridate::month(month, label = T, abbr = F))
+
+coast.labels <- c("coastal" = "Coastal (within 10 km)", "inland" = "Inland")
+
+bat_trap_time_df_all %>%
+  dplyr::filter(capture_rate > 0,
+                !is.na(coastal),
+                month %in% c(4, 5, 6, 7)) %>%
+  ggplot(., aes(x = bat_trap15x, y = capture_rate, fill = coastal, group = coastal))+
+  geom_area(alpha = 0.6)+
+  scale_fill_manual(
+    values = c("#332288", "#BC3C29"),
+    breaks = c("coastal", "inland"),
+    labels = c("Coastal (within 10 km)", "Inland"))+
+  coord_cartesian(ylim = c(0, 0.04))+
+  theme_ipsum()+
+  theme(text=element_text(size=12),
+        legend.position = "top",
+        axis.title.x = element_text(margin = margin(t = 20, r = 0, b = 0, l = 0), size = 12, hjust = 0.5),
+        axis.title.y = element_text(margin = margin(t = 0, r = 20, b = 0, l = 0), size = 12, hjust = 0.5),
+        axis.text.x = element_text(size = 12, margin = margin(t = 20, r = 0, b = 0, l = 0)),
+        axis.text.y = element_text(size = 12),
+        plot.margin = margin(t = 30, r = 5,  b = 0, l = 5)
+        )+
+  labs(x = "Time (HH:MM)",
+       y = "Mean Bat Capture Rate",
+       fill = "Survey Site")+
+  facet_wrap(~ month_name,
+             ncol = 1)
+
+bat_trap_time_df_all %>%
+    dplyr::filter(capture_rate > 0,
+                  !is.na(coastal),
+                  month %in% c(8, 9, 10)) %>%
+    ggplot(., aes(x = bat_trap15x, y = capture_rate, fill = coastal, group = coastal))+
+    geom_area(alpha = 0.6)+
+    scale_fill_manual(
+        values = c("#332288", "#BC3C29"),
+        breaks = c("coastal", "inland"),
+        labels = c("Coastal (within 10 km)", "Inland"))+
+    coord_cartesian(ylim = c(0, 0.04))+
+    theme_ipsum()+
+    theme(text=element_text(size=12),
+          legend.position = "none",
+          axis.title.x = element_text(margin = margin(t = 20, r = 0, b = 0, l = 0), size = 12, hjust = 0.5),
+          axis.title.y = element_text(margin = margin(t = 0, r = 20, b = 0, l = 0), size = 12, hjust = 0.5),
+          axis.text.x = element_text(size = 12, margin = margin(t = 20, r = 5, b = 0, l = 5)),
+          axis.text.y = element_text(size = 12),
+          plot.margin = margin(t = 0, r = 0,  b = 30, l = 0)
+          )+
+    labs(x = "Time (HH:MM)",
+         y = "Mean Bat Capture Rate",
+         fill = "Survey Site")+
+    facet_wrap(~ month_name,
+               ncol = 1)
+
+```
+<br>
+
+**Figure 3.** *P. nathusii* capture rates at coastal and inland survey sites by month. Capture rates binned into 15 minute intervals over the course of a typical survey evening.  
+<br>  
+
+### 3.2.3 | *Pipistrellus spp.* Capture Rate by Sex  
+
+<br>
+
+```{r PROCESSING - raw capture count by sex, echo = FALSE, message = FALSE, warning = FALSE}
+
+# count total number of female bats trapped in survey
+nnpp_survey_unique %>% 
+  dplyr::group_by(sex) %>% 
+  dplyr::summarise(count_sex_nnpp = n()) %>% 
+  dplyr::filter(sex == "Female") %$% count_sex_nnpp -> count_female_nnpp
+
+# count total number of male bats trapped in survey
+nnpp_survey_unique %>% 
+  dplyr::group_by(sex) %>% 
+  dplyr::summarise(count_sex_nnpp = n()) %>% 
+  dplyr::filter(sex == "Male") %$% count_sex_nnpp -> count_male_nnpp
+
+# count total number of un-sexed bats trapped in survey
+nnpp_survey_unique %>% 
+  dplyr::group_by(sex) %>% 
+  dplyr::summarise(count_sex_nnpp = n()) %>% 
+  dplyr::filter(sex == "Unknown") %$% count_sex_nnpp -> count_sex_unk_nnpp
+
+# calculate proportion of total bats by sex
+prop_female_nnpp <- round(count_female_nnpp/count_total_bats_nnpp, 2)
+prop_male_nnpp <- round(count_male_nnpp/count_total_bats_nnpp, 2)
+prop_sex_unk_nnpp <- round(count_sex_unk_nnpp/count_total_bats_nnpp, 2)
+
+```
+<br>  
+
+The sex ratio of *all* captured bats was approximately even over the survey, with  `r count_female_nnpp` (`r prop_female_nnpp`) female and `r count_male_nnpp` (`r prop_male_nnpp`) male bats captured; `r count_sex_unk_nnpp` (`r prop_sex_unk_nnpp`) individuals could not be accurately sexed (Table 2). However, the sex ratio of captured individuals varied between species (Figure 4), with the majority of *P.nathusii* captures being male.
+<br>
+<br>
+**Table 2.** Summary of bats captured, by species and sex, during National Nathusius' pipistrelle project surveys (2014-2023)**  
+```{r TABLE 2 - raw capture count by species-sex, echo = FALSE, message = FALSE, warning=FALSE}
+
+temp_df1 <- as.data.frame(nnpp_survey_unique %>%
+                            dplyr::group_by(species, species_name, sex) %>% 
+                            dplyr::filter(!is.na(species)) %>% 
+                            dplyr::summarise(bat_captures = n()))
+
+temp_df1 <- tidyr::complete(temp_df1, species, sex, fill = list(bat_captures = 0)) %>%
+  dplyr::filter(!is.na(species)) %>% 
+  dplyr::group_by(species) %>%
+  tidyr::fill(., species_name, .direction = "downup")
+
+temp_df1 %<>% 
+  dplyr::group_by(species_name) %>% 
+  dplyr::filter(!is.na(species_name)) %>% 
+  dplyr::mutate(species_total = sum(bat_captures)) %>% 
+  dplyr::arrange(factor(species_name, level = species_name_order_pip))
+
+temp_df1 %<>% 
+  dplyr::mutate(sex_prop = bat_captures / species_total)
+ 
+knitr::kable(
+  temp_df1 %>%
+    dplyr::filter(species %in% c("Nathusius' pipistrelle", "Soprano pipistrelle", "Common pipistrelle")) %>% 
+    dplyr::filter(!is.na(species)) %>% 
+    dplyr::select(species_name, sex, bat_captures, sex_prop) %>% 
+    format_cells(1:9, 1, "italics"),
+  col.names = c("Species", "Sex", "Number of Captures", "Proportion of Species Captures"),
+  align = "llll",
+  digits = 3)
+
+```
+<br>
+
+```{r FIG 4 - raw capture count by species-sex, echo = FALSE, message = FALSE, warning=FALSE, out.width="100%", out.height="100%", fig.width=5.8, fig.height=9}
+
+temp_df2 <- nnpp_survey_unique %>%
+  dplyr::filter(!is.na(species)) %>% 
+  dplyr::group_by(species, species_name, sex) %>%
+  dplyr::summarise(bat_captures = n())
+
+# pg <- ceiling(length(levels(factor(temp_df2$species)))/9)    # specify number of facet panels per page
+# 
+# for(i in seq_len(pg)){
+#   print(
+p3 <- temp_df2 %>% 
+    dplyr::filter(species_name %in% c("Pipistrellus nathusii", "Pipistrellus pygmaeus", "Pipistrellus pipistrellus"),
+                  sex != "Unknown") %>% 
+    ggplot(., aes(x = sex, y = bat_captures, fill = sex))+
+      geom_bar(stat = "identity", alpha = 0.7, width = 0.7)+
+        scale_fill_manual(values = c("#332288", "#20854E"),
+                        breaks = c("Female", "Male"))+
+      theme_ipsum()+
+      theme(text=element_text(size=14),
+          legend.position = "none",
+          axis.title.x = element_text(margin = margin(t = 20, r = 0, b = 0, l = 0), size = 14, hjust = 0.5),
+          axis.title.y = element_text(margin = margin(t = 0, r = 20, b = 0, l = 0), size = 14, hjust = 0.5),
+          axis.text.x = element_text(size = 14),
+          axis.text.y = element_text(size = 12),
+          strip.text = element_text(size = 12))+
+      # ggforce::facet_wrap_paginate(~ factor(species), ncol = 3, nrow = 3, page = i, scales = "free_y", drop = TRUE)+
+      facet_wrap(~ factor(species_name, levels = c("Pipistrellus nathusii",
+                                                   "Pipistrellus pygmaeus",
+                                                   "Pipistrellus pipistrellus")),
+                 ncol = 3,
+                 labeller = label_wrap_gen(width = 13, multi_line = TRUE))+
+      labs(x = "Sex",
+           y = "Number of bats captured")
+
+    # )
+# }
+
+# calculate sex ratio by species
+temp_df2a <- temp_df2 %>% 
+  dplyr::filter(sex != "Unknown") %>% 
+  dplyr::group_by(species, species_name) %>% 
+  dplyr::reframe(sex_ratio = bat_captures[sex == "Female"]/bat_captures[sex == "Male"])
+
+p4 <- temp_df2a %>% 
+      dplyr::filter(species %in% c("Nathusius' pipistrelle", "Soprano pipistrelle", "Common pipistrelle")) %>% 
+  ggplot(., aes(x = reorder(stringr::str_wrap(species_name, 13), sex_ratio), y = sex_ratio, colour = sex_ratio))+
+  geom_linerange(aes(x = reorder(stringr::str_wrap(species_name, 13), sex_ratio), ymin = 1, ymax = sex_ratio),
+                 position = position_dodge(0.4))+
+  geom_point(aes(reorder(stringr::str_wrap(species_name, 13), sex_ratio), y = sex_ratio, colour = sex_ratio),
+             size = 3.5, position = position_dodge(0.4))+
+  theme_ipsum(base_size = 14,
+              axis_title_size = 14)+
+  scale_y_continuous(limits = c(0,  2),
+                     breaks = c(0, 1, 2),
+                     labels = c("1:2", "1:1", "2:1"))+
+  scale_colour_gradient(low = "#0072B5", high="#BC3C29")+
+  geom_hline(aes(yintercept = 1), linetype = "dashed", colour = "#717171")+
+      theme(text=element_text(size=14),
+          legend.position = "none",
+          axis.title.x = element_text(margin = margin(t = 20, r = 0, b = 0, l = 0), size = 14, hjust = 0.5),
+          axis.title.y = element_text(margin = margin(t = 0, r = 20, b = 0, l = 0), size = 14, hjust = 0.5),
+          axis.text.x = element_text(size = 14),
+          axis.text.y = element_text(size = 12),
+          strip.text = element_text(size = 12))+
+  coord_flip()+
+  labs(x = "Species",
+       y = "Sex Ratio (Female:Male) Mean ± 95% CI")
+
+ggpubr::ggarrange(p3,
+                  p4 + ggpubr::rremove("ylab"),
+                  labels = c("A.", "B."),
+                  font.label = list(size = 14),
+                  nrow = 2,
+                  widths = c(1.2, 1),
+                  common.legend = FALSE,
+                  align = "hv",
+                  legend = "none")
+
+```
+**Figure 4.** Panel A: Number of *Pipistrellus spp.* captures by sex. Panel B: Sex ratio (female:male) of *Pipistrellus spp.* captures.
+<br>   
+<br>
+
+As established above, capture rates of *P. nathusii*, *Pipistrellus pygmaeus*, and *Pipistrellus pipistrellus* varied throughout the annual trapping window (April through October) (Figs. 2a & 2b). However, capture rate varied considerably by sex, particularly among *P. nathusii* and *P. pygmaeus* (Fig. 5). *P. nathusii* males were captured at consistently higher rates than *P. nathusii* females in all months. *P. pygmaeus* females were captured at higher rates than males between April and early August, after which capture rates of females and males converged.
+
+```{r FIG 5 - NP capture rate by month-sex, echo = FALSE, message = FALSE, warning = FALSE, out.width="100%", out.height="100%", fig.width=5.8, fig.height=9}
+
+df2 <- pip_survey_master_02 %>% 
+  dplyr::group_by(survey_id, species, sex, survey_effort_mins, year, month) %>% 
+  dplyr::summarise(bat_captures_by_species = sum(bat_captures)) %>% 
+  dplyr::mutate(bat_capture_rate_per_trap_per_hour = bat_captures_by_species/(as.numeric(survey_effort_mins)/60))
+
+# import bat species names
+bat_names <- readRDS("~/MEGA/Bat Conservation Trust/BCT-NNPP/rds/bat_names.rds")
+df2 <- dplyr::left_join(df2, bat_names, by = "species") %>% 
+  dplyr::mutate(species = stringr::str_replace(species, "sp.", "spp."))
+
+df2 %>% 
+  dplyr::filter(sex != "Unknown") %>% 
+  ggplot(., aes(x = month, y = bat_capture_rate_per_trap_per_hour, colour = sex))+
+  stat_smooth(method = "loess", alpha = 0.4)+
+  scale_x_continuous(limits = c(1, 12),
+                     breaks = c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12),
+                     label = c("January", "February", "March", "April", "May", "June",
+                               "July", "August", "September", "October", "November", "December"))+
+  scale_colour_manual(values = c("#332288", "#20854E"),
+                    breaks = c("Female", "Male"))+
+  theme_ipsum()+
+  theme(text=element_text(size=14),
+        legend.position = "bottom",
+        axis.title.x = element_text(margin = margin(t = 20, r = 0, b = 0, l = 0), size = 14, hjust = 0.5),
+        axis.title.y = element_text(margin = margin(t = 0, r = 20, b = 0, l = 0), size = 14, hjust = 0.5),
+        axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, size = 12),
+        axis.text.y = element_text(size = 14),
+        strip.text = element_text(size = 14),
+        panel.grid.minor = element_blank(),
+        # panel.spacing.x = unit(0.5, "lines")
+        )+
+  labs(x = "Month",
+       y = "Bat capture rate (bats per trap, per hour) Mean ± 95% CI",
+       colour = "Sex")+
+  facet_wrap(~ factor(species_name, levels = c("Pipistrellus nathusii", "Pipistrellus pygmaeus", "Pipistrellus pipistrellus")),
+             nrow = 3)
+
+
+```
+
+```{r PROCESSING - NP sex ratio vs seasonal baseline, include=FALSE}
+
+
+
+
+```
+
+**Figure 5.** *Pipistrellus spp.* capture rates throughout the year, by sex  
+<br>  
+
+### 3.2.4 | *Pipistrellus spp.* Sex Ratio Capture Rate at Coastal and Inland Survey Sites  
+
+<br>
+
+The sex ratio of captured *P. nathusii* differed little between coastal and inland survey sites throughout the year; neither did that of *P. pygmaeus* (Fig. 6). The ratio of female to male *P. Pipistrellus* captured at coastal survey sites spiked dramatically during June and July, however the 95% confidence interval surrounding this estimate is broad and should be interpreted with caution.
+
+```{r FIG 6 - NP capture rate sex ratio by month-coastal, echo = FALSE, message = FALSE, warning = FALSE, out.width="100%", out.height="100%", fig.width=5.8, fig.height=9}
+
+# calculate sex ratio by month and coastal
+pip_survey_master_04 <- readRDS("~/MEGA/Bat Conservation Trust/BCT-NNPP/rds/pip_survey_master_04.rds")
+
+df2 <- dplyr::left_join(df2, dplyr::select(pip_survey_master_04, survey_id, coastal)) %>% dplyr::distinct()
+
+np_sex_ratio_rate_coast2 <- df2 %>% 
+  dplyr::filter(sex != "Unknown") %>% 
+  dplyr::group_by(month, survey_id, species, sex, coastal) %>% 
+  dplyr::summarise(bat_capture_rate_per_trap_per_hour = mean(bat_capture_rate_per_trap_per_hour)) %>% 
+  tidyr::pivot_wider(., names_from = sex, values_from = bat_capture_rate_per_trap_per_hour) %>% 
+  dplyr::mutate(np_sex_ratio_coast = Female / Male)
+
+np_sex_ratio_rate_coast2 <- dplyr::left_join(np_sex_ratio_rate_coast2, bat_names, by = "species") %>% 
+  dplyr::mutate(species = stringr::str_replace(species, "sp.", "spp."))
+
+np_sex_ratio_rate_coast2 %>% 
+  ggplot(., aes(x = month, y = np_sex_ratio_coast, colour = coastal))+
+  stat_smooth(method = "loess", alpha = 0.4)+
+  scale_x_continuous(limits = c(1, 12),
+                     breaks = c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12),
+                     label = c("January", "February", "March", "April", "May", "June",
+                               "July", "August", "September", "October", "November", "December"))+
+      scale_colour_manual(
+        values = c("#332288", "#BC3C29"),
+        breaks = c("coastal", "inland"),
+        labels = c("Coastal (within 10 km)", "Inland"))+
+  theme_ipsum()+
+  theme(text=element_text(size=14),
+        legend.position = "bottom",
+        axis.title.x = element_text(margin = margin(t = 20, r = 0, b = 0, l = 0), size = 14, hjust = 0.5),
+        axis.title.y = element_text(margin = margin(t = 0, r = 20, b = 0, l = 0), size = 14, hjust = 0.5),
+        axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, size = 12),
+        axis.text.y = element_text(size = 14),
+        strip.text = element_text(size = 14),
+        panel.grid.minor = element_blank(),
+        # panel.spacing.x = unit(0.5, "lines")
+        )+
+  labs(x = "Month",
+       y = "Sex Ratio Capture Rate (Female:Male) Mean ± 95% CI",
+       colour = "Location")+
+  facet_wrap(~ factor(species_name, levels = c("Pipistrellus nathusii", "Pipistrellus pygmaeus", "Pipistrellus pipistrellus")),
+                          nrow = 3)
+
+
+
+```
+
+**Figure 6.** Sex ratio of captured *Pipistrellus spp.* at coastal and inland survey sites throughout the year. 
+<br>  
+<br>
+
+### 3.2.5 | *Pipistrellus spp.* Capture Rate by Age Class  
+
+<br>
+
+Adult bats of all 3 *Pipistrellus spp.* were captured at higher rates than juveniles, with the exception of a temporary spike in the capture rate of juvenile *P. pygmaeus* in July (Fig. 7). The capture rate of *P. pygmaeus* and *P. pipistrellus* juveniles increased at this time (likely due to an increase in fledged juveniles 'available' for capture). An increase in the capture rate of *P. nathusii* juveniles was not generally detectable until August.
+
+```{r FIG 7 - NP capture rate by month-age class, echo = FALSE, message = FALSE, warning = FALSE, out.width="100%", out.height="100%", fig.width=5.8, fig.height=9}
+
+df3 <- pip_survey_master_02 %>% 
+  dplyr::group_by(survey_id, species, age, survey_effort_mins, year, month) %>% 
+  dplyr::summarise(bat_captures_by_species = sum(bat_captures)) %>% 
+  dplyr::mutate(bat_capture_rate_per_trap_per_hour = bat_captures_by_species/(as.numeric(survey_effort_mins)/60))
+
+df3 <- dplyr::left_join(df3, bat_names, by = "species") %>% 
+  dplyr::mutate(species = stringr::str_replace(species, "sp.", "spp."))
+
+df3 %>% 
+  dplyr::filter(age != "Unknown") %>%
+  ggplot(., aes(x = month, y = bat_capture_rate_per_trap_per_hour, colour = age, group = age))+
+  # stat_smooth(method = "loess", alpha = 0.4)+
+      stat_summary(fun.data = "mean_cl_boot", geom = "line", position = position_dodge(0.3))+
+  stat_summary(fun.data = "mean_cl_boot", geom = "errorbar", width=0.05, position = position_dodge(0.3))+
+  stat_summary(fun.data = "mean_cl_boot", geom = "point", size = 2, position = position_dodge(0.3))+
+  scale_x_continuous(limits = c(1, 12),
+                     breaks = c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12),
+                     label = c("January", "February", "March", "April", "May", "June",
+                               "July", "August", "September", "October", "November", "December"))+
+ scale_colour_manual(
+        values = c("#332288", "#E18727"),
+        breaks = c("Adult", "Juvenile"))+
+  theme_ipsum()+
+  theme(text=element_text(size=14),
+        legend.position = "bottom",
+        axis.title.x = element_text(margin = margin(t = 20, r = 0, b = 0, l = 0), size = 14, hjust = 0.5),
+        axis.title.y = element_text(margin = margin(t = 0, r = 20, b = 0, l = 0), size = 14, hjust = 0.5),
+        axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, size = 12),
+        axis.text.y = element_text(size = 14),
+        strip.text = element_text(size = 14),
+        panel.grid.minor = element_blank(),
+        # panel.spacing.x = unit(0.5, "lines")
+        )+
+  labs(x = "Month",
+       y = "Bat capture rate (bats per trap, per hour) Mean ± 95% CI",
+       colour = "Age Class")+
+  facet_wrap(~ factor(species_name, levels = c("Pipistrellus nathusii", "Pipistrellus pygmaeus", "Pipistrellus pipistrellus")),
+                          nrow = 3)
+
+```
+**Figure 7.** Capture rate of adult and juvenile *Pipistrellus spp.* throughout the year. 
+<br>
+<br>
+
+### 3.2.6 | *Pipistrellus spp.* Scaled Body Mass Index by Sex  
+
+<br>
+
+The scaled body mass indices (SBMI) of all 3 *Pipistrellus sp.* fluctuated predictably throughout the year (Fig. 8). The SBMI of both sexes rose sharply post-hibernation/torpor, starting in April (first month of the year for which we routinely have these data).This rise slowed but continued for males, and dropped steeply for females during the birthing season (June/July). As anticipated, post-partum female SBMI increased steadily for the rest of the year.
+
+```{r FIG 8 - NP SBMI by month-sex, echo = FALSE, message = FALSE, warning = FALSE, out.width="100%", out.height="100%", fig.width=5.8, fig.height=9}
+
+np_sp_cp_smbi_01 <- readRDS("~/MEGA/Bat Conservation Trust/BCT-NNPP/rds/np_sp_cp_smbi_01.rds")
+pip_survey_master_04 <- readRDS("~/MEGA/Bat Conservation Trust/BCT-NNPP/rds/pip_survey_master_04.rds")
+
+smbi_df <- dplyr::left_join(np_sp_cp_smbi_01,
+                            dplyr::select(pip_survey_master_04, survey_id, month),
+                            by = "survey_id") %>% 
+  dplyr::distinct()
+
+smbi_df <- dplyr::left_join(smbi_df, bat_names, by = "species") %>% 
+  dplyr::mutate(species = stringr::str_replace(species, "sp.", "spp."))
+
+smbi_df %>% 
+  dplyr::filter(sex != "Unknown") %>% 
+  ggplot(., aes(x = month, y = smi, colour = sex, group = sex))+
+  stat_smooth(method = "loess", alpha = 0.4)+
+  scale_x_continuous(limits = c(1, 12),
+                     breaks = c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12),
+                     label = c("January", "February", "March", "April", "May", "June",
+                               "July", "August", "September", "October", "November", "December"))+
+    scale_colour_manual(values = c("#332288", "#20854E"),
+                    breaks = c("Female", "Male"))+
+  theme_ipsum()+
+  theme(text=element_text(size=14),
+        legend.position = "bottom",
+        axis.title.x = element_text(margin = margin(t = 20, r = 0, b = 0, l = 0), size = 14, hjust = 0.5),
+        axis.title.y = element_text(margin = margin(t = 0, r = 20, b = 0, l = 0), size = 14, hjust = 0.5),
+        axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, size = 12),
+        axis.text.y = element_text(size = 14),
+        strip.text = element_text(size = 14),
+        panel.grid.minor = element_blank()
+        # panel.spacing.x = unit(0.5, "lines")
+        )+
+  labs(x = "Month",
+       y = "Scaled Mass Index (g) Mean ± SD",
+       colour = "Sex")+
+  facet_wrap(~ factor(species_name, levels = c("Pipistrellus nathusii", "Pipistrellus pygmaeus", "Pipistrellus pipistrellus")),
+                          nrow = 3)
+
+smbi_df %>% 
+  dplyr::filter(sex != "Unknown",
+                age != "Unknown") %>% 
+  ggplot(., aes(x = month, y = smi, colour = sex, group = sex))+
+  stat_smooth(method = "loess", alpha = 0.4)+
+  scale_x_continuous(limits = c(1, 12),
+                     breaks = c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12),
+                     label = c("January", "February", "March", "April", "May", "June",
+                               "July", "August", "September", "October", "November", "December"))+
+    scale_colour_manual(values = c("#332288", "#20854E"),
+                    breaks = c("Female", "Male"))+
+  theme_ipsum()+
+  theme(text=element_text(size=14),
+        legend.position = "bottom",
+        axis.title.x = element_text(margin = margin(t = 20, r = 0, b = 0, l = 0), size = 14, hjust = 0.5),
+        axis.title.y = element_text(margin = margin(t = 0, r = 20, b = 0, l = 0), size = 14, hjust = 0.5),
+        axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, size = 14),
+        axis.text.y = element_text(size = 14),
+        strip.text = element_text(size = 14),
+        panel.grid.minor = element_blank()
+        # panel.spacing.x = unit(0.5, "lines")
+        )+
+  labs(x = "Month",
+       y = "Scaled Mass Index (g) Mean ± SD",
+       colour = "Sex")+
+  facet_wrap(factor(species_name, levels = c("Pipistrellus nathusii", "Pipistrellus pygmaeus", "Pipistrellus pipistrellus")) ~ age,
+                          nrow = 3)
+
+```
+**Figure 8.** Scaled Body Mass Indices (SBMI) of captured female and male *Pipistrellus spp.* throughout the year. 
+<br>  
+<br>
+
+### 3.3 | Nathusius' Pipistrelle International Ring Recoveries  
+<br>
+
+```{r PROCESSING - NP international bearings Rayleigh test, include=F}
+
+
+# test uniformity of direction (INT NP recaptures)
+
+# The Rayleigh’s test has a few very important assumptions:
+#     The data are not diametrically bidirectional.
+#     The data are unimodal, meaning there are not more than one clustering of points around the circle.
+
+# test stat is R bar (measure of spread round circle; 0 = completely spread, 1 = completely concentrated)
+# p-val of < 0.05 = orientation significantly different from random
+
+np_int_ringing_bearing_circ <- readRDS("~/MEGA/Bat Conservation Trust/BCT-NNPP/rds/np_int_ringing_bearing_circ.rds")
+circular::rayleigh.test(np_int_ringing_bearing_circ)
+
+```
+
+Between October 2012 and September 2019, 6 ringed *P. nathusii* were recovered that had been ringed outside the UK, whilst 4 individuals ringed in the UK were recovered elsewhere in Europe (Table 3 & Fig. 9). The origin points of these migrant *P. nathusii* were Latvia (n = 4) and Lithuania (n = 2). The 4 individuals originally ringed in the UK were subsequently recovered in the Netherlands (n = 1), Belgium (n = 1), Poland (n = 1), and Russia (n = 1). The farthest distance travelled (between ring recovery locations) was 1902 km from Bedfont Lakes near Heathrow airport in London, UK to Pskov in Russia. This was undertaken by a female *P. nathusii*, however the initial and subsequent ringing recovery dates are unknown. Of those 8 individuals for which date information are available, the farthest distance travelled was 1454 km from Latvia to Sussex in the UK. This male *P. nathusii* made the journey in 50 days at an approximate rate of 29.08 km per day. The fastest rate of travel recorded was between Lithuania and Stodmarsh (near Canterbury, UK) at approximately 37.8 km per day over 37 days. The other 6 individuals for which these data (first and subsequent ring/recovery date) are available were all recovered at least 6 months after their initial ringing, making it less likely that these journeys were undertaken in a single migratory journey.
+
+Analysis of the bearings between ringing recovery locations (assuming a straight-line travel trajectory) indicated a statistically significantly uniform distribution of bearings, i.e., the probability of these bearings being so similar, merely by chance, is highly unlikley (Rayleigh-test, *R* = 0.5971, *P* = 0.024, n = 8; Fig. 10).
+<br>
+<br>
+
+**Table 3.** Nathusius' pipistrelle International Ringing Recaptures. 
+```{r TABLE 3 - NP international ringing recovery data, echo=FALSE, message=FALSE, warning=FALSE}
+
+np_int_ringing_summary <- readRDS("~/MEGA/Bat Conservation Trust/BCT-NNPP/rds/np_int_ringing_summary.rds")
+
+knitr::kable(
+    np_int_ringing_summary %>% 
+      as.data.frame() %>%
+      dplyr::arrange(capture_date_1) %>% 
+      dplyr::select(ring_number, sex, capture_date_1, capture_date_2, recap_dist, recap_duration, note2) %>%
+      dplyr::mutate(recap_dist = as.numeric((recap_dist)/1000),
+                    recap_duration = as.numeric(recap_duration*-1)) %>% 
+      dplyr::mutate(across(c(capture_date_1, capture_date_2, recap_duration),  ~ tidyr::replace_na(as.character(.), "Unknown"))),
+    col.names = c("Ring Number", "Sex", "1st Capture Date", "Subsequent Capture Date",
+                  "Distance Between Recaptures (km)", "Days Between Recaptures", "Note"),
+    align = "lllllll",
+    digits = 0) 
+
+```
+
+```{r FIG 9 - MAP of NP international ringing data, echo=FALSE, message=FALSE, warning=FALSE, out.width="100%", out.height="100%", fig.width=5.8, fig.height=9, fig.retina=2}
+
+np_international_ringing_01 <- readRDS("~/MEGA/Bat Conservation Trust/BCT-NNPP/rds/np_international_ringing_01.rds")
+# europe <- readRDS("~/MEGA/Bat Conservation Trust/NNPP/rds/europe.rds")
+
+# create var to identify if individual is departing UK or arriving
+np_international_ringing_01 <- np_international_ringing_01 %>% 
+  dplyr::mutate(mig_status = dplyr::case_when(capture_instance == 1 & capture_lat > 10 ~ "immigrant",
+                                              capture_instance == 1 & capture_lat < 10 ~ "emigrant",
+                                              capture_instance == 2 ~ NA)) %>% 
+  dplyr::group_by(ring_number) %>% 
+  tidyr::fill(., mig_status, .direction = "downup")
+  
+ggplot() +
+  geom_sf(data = europe)+
+  # geom_sf(data = rivers, colour = "blue", linewidth = 0.2) +
+  geom_sf(data = lakes, fill = "#88CCEE")+
+  geom_point(data = np_international_ringing_01,
+             aes(x = capture_lat, y = capture_lon, colour = mig_status),
+             alpha = 1, size = 0.9)+
+  geom_line(data = np_international_ringing_01,
+            aes(x = capture_lat, y = capture_lon, colour = mig_status, group = ring_number),
+            alpha = 1, linewidth = 0.8)+
+  scale_colour_manual(breaks = c("emigrant", "immigrant"),
+                      labels = c("Leaving UK", "Arriving UK"),
+                      values = c("#BC3C29", "#20854E"))+
+  coord_sf(xlim = c(-10.5, 27.5), ylim = c(49.5, 60.5))+
+  geom_text(data = europe, aes(label_x, label_y, label = name), size = 3)+
+  labs(x = "Latitude", y = "Longitude", colour = "Direction of Travel")+
+  theme(text=element_text(size=14),
+        legend.position = "bottom",
+        axis.title.y = element_text(margin = margin(t = 0, r = 20, b = 0, l = 0), size = 14),
+        axis.title.x = element_text(margin = margin(t = 20, r = 0, b = 0, l = 0), size = 14),
+        axis.text.y = element_text(size = 14),
+        axis.text.x = element_text(size = 14),
+        plot.margin = margin(t = 0, r = 0,  b = -30, l = 0))
+
+```
+<br>
+
+**Figure 9.** Map of Nathusius' pipistrelle international ringing recapture locations and straight-line travel routes.
+<br>
+
+```{r FIG 10 - NP international bearings, echo=FALSE, message=FALSE, warning=FALSE, out.width="100%", out.height="100%", fig.width=5.8, fig.height=9}
+
+np_int_ringing_bearing <- readRDS("~/MEGA/Bat Conservation Trust/BCT-NNPP/rds/np_int_ringing_bearing.rds")
+mean_np_int_ringing_bearing <- readRDS("~/MEGA/Bat Conservation Trust/BCT-NNPP/rds/mean_np_int_ringing_bearing.rds")
+
+np_int_ringing_bearing %>%
+  as.data.frame() %>%
+  dplyr::distinct(ring_number, bearing, .keep_all = T) %>%
+  ggplot(., aes(x = bearing, y = as.numeric(recap_dist)/1000))+
+  # geom_vline(aes(xintercept = -168),
+  #            linetype = "dashed", colour = "#CC6677")+
+  geom_segment(aes(xend = bearing, yend = 0), linewidth = 1.2, alpha = 0.4, colour = "#0072B5")+
+  geom_point(size = 1.2)+
+  geom_vline(aes(xintercept = mean_np_int_ringing_bearing),
+               linetype = "dashed", colour = "#BC3C29", linewidth = 1.1)+
+    scale_x_continuous(limits = c(-180, 180),
+                       breaks =  seq(-180, 180, 90)) +
+    coord_polar(start = pi) +
+    theme_ipsum()+
+    theme(text=element_text(size=14),
+          legend.position = "none",
+          axis.title.x = element_text(margin = margin(t = 10, r = 0, b = 0, l = 0), hjust = 0.5, size = 14),
+          axis.title.y = element_text(margin = margin(t = 0, r = 20, b = 0, l = 0), hjust = 0.5, size = 14),
+          axis.text.y = element_text(margin = margin(t = 0, r = 20, b = 0, l = 0), size = 14),
+          axis.text.x = element_text(margin = margin(t = 0, r = 0, b = 0, l = 0), size = 14),
+          plot.caption = element_text(size = 11)
+          )+
+    labs(caption = "Dashed red line indicates mean directional bearing",
+         x = "Bearing (Degrees)", y = "Distance between recaptures (km)")
+```
+**Figure 10.** Nathusius' pipistrelle international ringing recapture bearings.
+<br>
+<br>
+
+### 3.4 | Nathusius' Pipistrelle UK Ring Recoveries 
+<br/>
+
+```{r NP UK recaptures, include=F}
+
+np_uk_ringing_survey_and_adhoc_sf_27700_dist <- readRDS("~/MEGA/Bat Conservation Trust/BCT-NNPP/rds/np_uk_ringing_survey_and_adhoc_sf_27700_dist.rds")
+
+count_within_uk_recaptured_np <- nrow(np_uk_ringing_survey_and_adhoc_sf_27700_dist %>% 
+  dplyr::filter(!is.na(dist)))
+
+np_uk_ringing_survey_and_adhoc_sf_27700_dist %>%
+  dplyr::filter(!is.na(dist)) %>% 
+  dplyr::mutate(csz = ifelse(as.numeric(dist) > 3000, "exceed", "within")) %>% 
+  janitor::tabyl(csz) %$% n[1] -> np_exceed_csz
+
+np_uk_ringing_survey_and_adhoc_sf_27700_dist %>%
+  dplyr::filter(!is.na(dist)) %>% 
+  dplyr::mutate(csz = ifelse(as.numeric(dist) > 3000, "exceed", "within")) %>% 
+  janitor::tabyl(csz) %$% n[2] -> np_within_csz
+
+np_uk_ringing_survey_and_adhoc_sf_27700_dist %>%
+  dplyr::mutate(dist2 = as.numeric(dist)/1000) %>% 
+  dplyr::filter(!is.na(dist2)) %>% 
+  dplyr::filter(dist2 > 3) %>% 
+  dplyr::ungroup() %>% 
+  dplyr::summarise(median_km = round(median(dist2),0)) %$% median_km[1] -> median_np_uk_recap_dist
+
+```
+
+```{r PROCESSING - NP UK bearings Rayleigh test, include=F}
+
+# test uniformity of direction (UK NP recaptures)
+np_uk_ringing_exceed_csv_bearing_circ <- readRDS("~/MEGA/Bat Conservation Trust/BCT-NNPP/rds/np_uk_ringing_exceed_csv_bearing_circ.rds")
+
+uk_rayleigh_test <- circular::rayleigh.test(np_uk_ringing_exceed_csv_bearing_circ)
+
+uk_rayleigh_test_stat <- round(uk_rayleigh_test[["statistic"]],3)
+uk_rayleigh_test_pval <- round(uk_rayleigh_test[["p.value"]],3)
+uk_rayleigh_test_n <- length(np_uk_ringing_exceed_csv_bearing_circ)/2
+
+```
+
+Between January 2013 and September 2023, `r toString(count_within_uk_recaptured_np)` ringed *P. nathusii* individuals were recovered (in the UK) that had been ringed within the UK. Of these the majority  (n = `r toString(np_within_csz)`) were recovered within 3 km of their original position. These likely represent foraging movements (given the established 3 km core sustenance zone (CSZ) for *P. nathusii* [@bct2020csz]) rather than internal migration events. The remaining `r toString(np_exceed_csz)` ring recoveries exceeded this 3 km radius (Fig. 11); the median distance between recoveries was approximately `r toString(median_np_uk_recap_dist)` km, however 5 individuals made substantially longer journeys of approximately 113 km, 80km, 60 km, 35 km and 34 km. The majority of the recoveries in excess of 3 km were of adult male *P. nathusii*.
+
+As with the international ring recapture bearings, analysis of the bearings between UK ringing recapture locations (assuming a straight-line travel trajectory) indicated a significantly uniform distribution of bearings (Rayleigh-test, *R* = `r toString(uk_rayleigh_test_stat)`, *P* = `r toString(uk_rayleigh_test_pval)`, n = `r toString(uk_rayleigh_test_n)`; Fig. 12).
+<br>
+
+```{r FIG 11 - MAP of NP UK ringing recoveries, out.width="100%", out.height="100%", fig.width=5.8, fig.height=9}
+knitr::include_graphics("C:/Users/james/Documents/MEGA/Bat Conservation Trust/BCT-NNPP/markdown/images/np_uk_map.png")
+```
+<br>
+**Figure 11.** Map of Nathusius' pipistrelle UK ringing recovery locations and straight-line travel routes.
+<br>
+
+```{r FIG 12 - NP UK bearings, echo=FALSE, message=FALSE, warning=FALSE, out.width="100%", out.height="100%", fig.width=5.8, fig.height=6}
+
+np_uk_ringing_exceed_csv_bearing <- readRDS("~/MEGA/Bat Conservation Trust/BCT-NNPP/rds/np_uk_ringing_exceed_csv_bearing.rds")
+mean_np_uk_ringing_exceed_csv_bearing <- readRDS("~/MEGA/Bat Conservation Trust/BCT-NNPP/rds/mean_np_uk_ringing_exceed_csv_bearing.rds")
+
+np_uk_ringing_exceed_csv_bearing_plot1 <-
+  np_uk_ringing_exceed_csv_bearing %>% 
+  dplyr::distinct(ring_number, bearing, .keep_all = T) %>% 
+    ggplot(., aes(x = bearing, y = as.numeric(dist)/1000))+
+    geom_rect(aes(xmin = -180, xmax = 180, ymin = 3, ymax = 20),
+            fill = "#DDCC77", alpha = 0.015)+
+    geom_vline(aes(xintercept = mean_np_uk_ringing_exceed_csv_bearing),
+               linetype = "dashed", colour = "#BC3C29")+
+    # geom_vline(aes(xintercept = -95.8),
+    #            linetype = "dashed", colour = "#CC6677")+
+    geom_segment(aes(xend = bearing, yend = 0), colour = "#0072B5")+
+    geom_point(size = 0.9)+
+    scale_x_continuous(limits = c(-180, 180),
+                       breaks =  seq(-180, 180, 90)) +
+    coord_polar(start = pi) +
+    theme_ipsum()+
+    theme(text = element_text(size = 12),
+          legend.position = "none",
+          axis.title.x = element_text(margin = margin(t = 10, r = 0, b = 0, l = 0), size = 14, hjust = 0.5),
+          axis.title.y = element_text(margin = margin(t = 0, r = 20, b = 0, l = 0), size = 14, hjust = 0.5),
+          axis.text.y = element_text(margin = margin(t = 0, r = 20, b = 0, l = 0), size = 14),
+          axis.text.x = element_text(margin = margin(t = 0, r = 0, b = 0, l = 0), size = 14),
+          plot.margin = margin(t = 0, r = 0,  b = 10, l = 0),
+          plot.caption = element_text(size = 8))+
+    labs(
+      # title = "Nathusisus' pipistrelle UK recapture bearings",
+         # subtitle = "UK ring recapture distances > 3 km",
+         caption = "Dashed red line indicates\nmean directional bearing",
+         x = "Bearing (Degrees)", y = "Distance between recoveries (km)")
+
+np_uk_ringing_exceed_csv_bearing_plot2 <-
+np_uk_ringing_exceed_csv_bearing %>% 
+  dplyr::distinct(ring_number, bearing, .keep_all = T) %>% 
+  dplyr::filter(as.numeric(dist) < 7000) %>%
+  ggplot(., aes(x = bearing, y = as.numeric(dist)/1000))+
+  geom_rect(aes(xmin = -180, xmax = 180, ymin = 0, ymax = 6),
+            fill = "#DDCC77", alpha = 0.1)+
+  geom_vline(aes(xintercept = mean_np_uk_ringing_exceed_csv_bearing),
+             linetype = "dashed", colour = "#BC3C29", linewidth = 1.1)+
+  # geom_vline(aes(xintercept = -95.8),
+  #            linetype = "dashed", colour = "#CC6677")+
+  geom_segment(aes(xend = bearing, yend = 0), colour = "#0072B5")+
+  geom_point(size = 0.9)+
+  scale_x_continuous(limits = c(-180, 180),
+                     breaks =  seq(-180, 180, 90)) +
+  coord_polar(start = pi) +
+  theme_ipsum()+
+  theme(text = element_text(size = 12),
+        legend.position = "none",
+        axis.title.x = element_text(margin = margin(t = 10, r = 0, b = 0, l = 0), size = 14, hjust = 0.5),
+        axis.title.y = element_text(margin = margin(t = 0, r = 20, b = 0, l = 0), size = 14, hjust = 0.5),
+        axis.text.y = element_text(margin = margin(t = 0, r = 20, b = 0, l = 0), size = 14),
+        axis.text.x = element_text(margin = margin(t = 0, r = 0, b = 0, l = 0), size = 14),
+        plot.margin = margin(t = 0, r = 0,  b = 10, l = 0),
+          plot.caption = element_text(size = 8))+
+  labs(
+    # title = "Nathusisus' pipistrelle UK recapture bearings",
+       #        subtitle = "UK ring recapture distances > 3 km",
+              caption = "Shaded yellow area represents\nsame 0 - 6 km range in both panels",
+              x = "Bearing (Degrees)"
+       # ,
+       # y = "Distance between recaptures (km)"
+       )
+
+ggpubr::ggarrange(np_uk_ringing_exceed_csv_bearing_plot1,
+                  np_uk_ringing_exceed_csv_bearing_plot2 + ggpubr::rremove("ylab"),
+                  labels = c("A. UK recoveries: All > 3km",
+                             "B. UK recoveries: 3km <> 6km"),
+                  font.label = list(size = 12, face = "bold"),
+                  label.y = 0.85,
+                  legend = NULL,
+                  ncol = 2,
+                  align = "hv")
+
+```
+
+**Figure 12.** Nathusius' pipistrelle UK ringing recapture bearings. Panel A shows all recapture distances that exceeded the estimated 3 km core sustenance zone (CSV) of *P. nathusii*. However, this scale makes it difficult to appreciate the unimodal distribution of bearings; as such, panel B 'zooms in' to highlight the uniformity of bearings within a 6 km recapture distance. The shaded yellow areas represent the same geographical radius in both panels.
+<br>
+
+## 4 | Discussion
+
+*Pipistrellus pygmaeus* were the most numerous bat species caught during this study. This reflects the location of capture points adjacent to waterbodies, features with which *P. pygmaeus* are strongly positively associated [@vaughan1997habitat]. The success of the survey methodology in capturing *P. nathusii* is confirmed by the fact that they were the second most numerous species caught, despite being rare in the GB [@mathews2018review].
+*P. nathusii* were captured during all months of the survey, confirming this species is present in GB year round. However what is not clear from this study is how long individual *P. nathusii* remain in the GB.  
+
+Capture rates of *P. nathusii* were highest at the start of the survey period in early April and again at the end of the survey period in late October. This corresponds with the periods during which migratory individuals are anticipated to present in GB, having arrived in late summer and early autumn, and departed again in the spring. The seasonal differences in capture rates suggest that the majority of the GB population of *P. nathusii* is migratory, with a smaller population remaining in GB during the summer breeding season.  
+
+*P. nathusii* capture rates were higher during the autumn than in spring. This could indicate that fewer individuals are active in the spring due to mortality over the hibernation period, or it may reflect differing capture efficiency in the post-hibernation period relative to the post-breeding caused, for example, by a different response to the acoustic lure. However the two periods are not directly comparable as in neither period do capture rates show signs of having reached an asymptote. This suggests that there may be considerable migratory activity beyond the survey period, and that the spring peak of activity may occur in March or earlier. In future studies we recommend surveying earlier than April and later than October to locate the peaks of *P. nathusii* activity in GB.  
+
+The seasonal changes in capture rate observed for *P. nathusii* contrast with those observed for *P. pygmaeus* and Pipistrellus pipistrellus, both species with large breeding populations in GB, providing further support for the predominance of migration in the GB population of *P. nathusii*.  *P. pygmaeus* and *P. pipistrellus* both had highest capture rates in the summer months, corresponding with the period during which females in particular are most active as they raise young. Capture rates were lowest in October as bat activity reduced with falling overnight temperatures.   
+
+Capture rates of *P. pipistrellus* showed a notable decline in July, followed by a recovery in August. It is not clear what caused this decline, however it corresponds with the peak capture rates for *P. pygmaeus*. *P. pipistrellus* is relatively plastic in its foraging habitat preferences [@vaughan1997habitat], whereas *P. pygmaeus* has much narrower foraging preferences, so it may be that competition with *P. pygmaeus* results in more *P. pipistrellus* choosing to forage away from waterbodies during the peak of the breeding season.  
+
+Almost 3.5 times more male than female *P. nathusii* were caught during the survey. This is in contrast to *P. pygmaeus* and *P. pipistrellus*, for both of which more females were caught than males. It is possible that the use of an acoustic lure can cause a bias in the sex ratio of captured bats if the sexes respond differently to the acoustic stimuli, however if this effect was entirely responsible for the differing capture rate of male and female bats we would expect to see similar sex ratios for all Pipistrellus species. The substantial difference in sex ratio between *P. nathusii* and the two resident Pipistrellus species suggests that this reflects an actual difference in the populations of these species, and that the population of *P. nathusii* in GB is predominantly male.  
+
+The sex ratio of captured *P. nathusii* was relatively constant over the survey period, indicating that there is no sex-based difference in migratory tendency in GB. It has previously been hypothesised that male *P. nathusii* are more likely to remain in GB over the summer as they do not have to migrate to breeding grounds and raise young, having already mated with females on their autumn migration. However data from this study does not support this hypothesis. Rather it indicates that males and females are equally likely to remain in GB in the summer, and that the higher number of males observed in GB over summer is as a result of larger numbers of males entering GB the previous autumn. The data suggest that males are more likely than females to make the sea crossing to GB.  
+
+Interestingly, while the capture rate of female *P. nathusii* shows signs of levelling off in mid-October, that capture rate of male *P. nathusii* is still increasing over this same period, suggesting that female *P. nathusii* tend to arrive in GB before their male counterparts. This aligns with observations elsewhere in their range that male *P. nathusii* hold territory along the migration routes used by females, and move to more southerly latitudes after the mating season has passed [@strelkov1969migratory; @brosset1990migrations; @jahelkova2011mating].  
+
+It is also interesting to note that a higher proportion of female bats were captured at coastal sites than at inland sites, suggesting that, having reached GB, males are more likely than females to travel inland.      
+
+In contrast to *P. nathusii*, the sex ratio of *P. pygmaeus* and *P. pipistrellus* was not constant across the survey period. Whereas more females than males were caught between April and September, the difference narrows and eventually reverses, with more males caught than females in October. This corresponds with the greater energy demands experienced by females during the summer breeding season, and greater activity by males in the autumn mating season. There is also no evidence of a different sex ratio between coastal and inland sites.  
+
+The capture rate of juvenile *P. nathusii* also differed markedly to that of juvenile *P. pipistrellus* and *P. pygmaeus*. In this study juveniles were identified using degree of ossification of the epiphyseal joints in the finger bones. These joints will normally be fully ossified around 12 weeks after birth, so this technique can only distinguish juveniles bats in the summer and autumn months. As such no juveniles of any species were reported during surveys in the pre-breeding period. The first juvenile *P. pygmaeus* and *P. pipistrellus* were caught in July, and capture rates peak in July (for *P. pygmaeus*) or August (for *P. pipistrellus*). The juvenile capture rate of these two species then declines over September and October, mirroring a similar decline in adult capture rates as bats reduce foraging activity as temperatures cool.  
+
+The reverse pattern is seen for juvenile *P. nathusii*. A very small number of juvenile *P. nathusii* were caught in August, then capture rates increase over autumn and were highest in October. This follows a similar pattern to the capture rates of adult *P. nathusii* in the post-breeding period, and indicates that the majority of juvenile *P. nathusii* captured in GB have likely migrated from elsewhere.     
+
+Seasonal patterns in body condition also vary markedly between *P. nathusii* and the two resident Pipistrellus species. Body condition of *P. pygmaeus* and *P. pipistrellus* follow a similar pattern over the year, being lowest in the period post-hibernation, recovering over spring and early summer, plateauing or dropping during the period when females are giving birth and lactating, then increasing again over autumn, reaching a peak as hibernation approaches. There is little difference in body condition or trends in body condition by sex. The body condition of female *P. nathusii* appears to follow a similar pattern to that observed in *P. pipistrellus* and *P. pygmaeus*, although the large confidence intervals around the trend reduce certainty. The pattern of body condition in male *P. nathusii* is markedly different to female *P. nathusii*, and to the other Pipistrellus species of both sexes. As with the other species it is at its lowest post-hibernation, but it then increases rapidly to a peak in August before declining slightly in autumn, which may reflects the poorer body condition of individuals arriving in GB from continental Europe. It does not show a plateau or decline during the breeding season, as seen in female *P. nathusii* and in other Pipistrellus species of both sexes. In this study we estimated body condition using a combination of body weight and forearm length, so giving birth and the demands of lactation will result in a significant reduction in body condition for female bats. Interestingly body condition also plateaus or declines over this same period for male *P. pipistrellus* and *P. pygmaeus*. Previous studies suggest that male bats may be displaced to less suitable habitat by females [@lintott2014city; @senior2005sex]. Competitive exclusion by female conspecifics may therefore result in lowered body condition in males over the summer months. This may also explain why a similar impact on body condition is not observed for male *P. nathusii*. This study has shown that the population of *P. nathusii* in GB is predominantly male, and so it may be that males remaining in GB over the summer avoid the impacts competitive exclusion they may face is areas with a higher population of females, and that they escape the same competitive pressures that prevent body condition in male *P. pygmaeus* and *P. pipistrellus* from increasing in a similar fashion. This may also explain why larger numbers of male than female *P. nathusii* risk the sea crossing to overwinter in GB.  
+
+*Ringing recoveries*
+
+*International ring recoveries*
+
+Four *P. nathusii* ringed in GB were recovered in central or eastern Europe or Russia, and six *P. nathusii* ringed in Latvia or Lithuania were recovered in GB. This represents the first direct evidence of long-distance movements of *P. nathusii* from central and eastern Europe to GB. The timing and uniformity of bearing of recoveries correspond with the known migratory movements of this species within Europe and confirm the migration of this species into and out of GB. However these recoveries represent only part of the species’ migratory pathway, which may extend further east and west of the locations recorded here. It is also not clear from the recovery data which routes the bats followed between locations, and in particular which route they took to cross the sea when entering or leaving GB. 
+
+*Within-GB ring recoveries*
+
+The majority of recaptures of ringed *P. nathusii* were over relatively short distances and time periods. This reflects the fact that trapping effort was concentrated around particular waterbodies and indicates that a proportion *P. nathusii* remained in or near the site where they were first captured.  
+
+Although trapping effort was minimal outside of survey sites there were 14  recaptures of ringed individuals beyond the typical mean-maximum foraging radius of *P. nathusii*, and eight  further than 10km from their ringing location. Movements across these distances are more likely to represent dispersal, and uniformity of bearing analysis showed they were significantly more likely to be in a westerly direction, so may represent the continuation of migration within GB.  
+
+## 5 | References  
+
+
+
